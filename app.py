@@ -14,8 +14,6 @@ load_dotenv()  # This loads the environment variables from the .env file.
 firebase_url = os.getenv('FIREBASE_URL')
 cred_path = os.getenv('FIREBASE_ADMIN_CREDENTIAL')
 
-#firebase_url = 'https://strykbros-default-rtdb.europe-west1.firebasedatabase.app/'
-
 cred = credentials.Certificate(cred_path)
 firebase_admin.initialize_app(cred, {
     'databaseURL': firebase_url
