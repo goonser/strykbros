@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+
+{% block head %}
+{% endblock %}
+
+{% block body %}
+<center>
+    <h1> Welcome to Strykbros </h1>
+    {% for coupon_id, details in coupons.items() %}
+    <a href="{{ url_for('index', coupon_id=coupon_id, coupon_name=details['meta']['name']) }}">
+        {{ details['meta']['name'] }}
+    </a><br>
+    {% endfor %}
+</center>
+{% endblock %}

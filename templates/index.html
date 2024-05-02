@@ -1,0 +1,159 @@
+{% extends 'base.html' %}
+
+{% block head %}
+{% endblock %}
+
+{% block body %}
+<div class="content">
+    <h1 style="text-align: center">{{ coupon_name }}</h1>
+    <div id="no-games" style="text-align: center">Loading games...</div>
+    <table class="table table-striped" id="gamesTable" style="display: none;">
+        <thead>
+            <tr>
+                <th>Match</th>
+                <th>1</th>
+                <th>X</th>
+                <th>2</th>
+            </tr>
+        </thead>
+        <tbody class="fw-lighter" id="gamesTableBody">
+            {% for description, odd, sv_perc, status in zip(game_descriptions, odds, sv_percentage, checked_status.values()) %}
+            <tr>
+                <td>{{ description }} <br>
+                    Odds: <br>
+                    Svenska folket:
+                </td>
+                <td class="{{ 'selected' if status['1'] else '' }} {{ 'correct-outcome' if outcome[loop.index -1] == '1' else '' }}" 
+                    data-game-id="{{ loop.index }}" 
+                    data-selection="1" 
+                    onclick="toggleSelection(this, '{{ loop.index }}', '1', '{{coupon_id}}')">
+                    <br>
+                    {{ odd[0] }} <br>
+                    {{ sv_perc[0] }}%
+                </td>
+                <td class="{{ 'selected' if status['x'] else '' }} {{ 'correct-outcome' if outcome[loop.index -1] == 'x' else '' }}" 
+                    data-game-id="{{ loop.index }}" 
+                    data-selection="x" 
+                    onclick="toggleSelection(this, '{{ loop.index }}', 'x', '{{coupon_id}}')">
+                    <br>
+                    {{ odd[1] }} <br>
+                    {{ sv_perc[1] }}%
+                </td>
+                <td class="{{ 'selected' if status['2'] else '' }} {{ 'correct-outcome' if outcome[loop.index -1] == '2' else '' }}" 
+                    data-game-id="{{ loop.index }}" 
+                    data-selection="2" 
+                    onclick="toggleSelection(this, '{{ loop.index }}', '2', '{{coupon_id}}')">
+                    <br>
+                    {{ odd[2] }} <br>
+                    {{ sv_perc[2] }}%
+                </td>
+
+            </tr>
+            {% endfor %}
+            <tr>
+                <td colspan="4" id="totalValue">Total: 0</td>
+            </tr>
+            
+        </tbody>
+        
+    </table>
+</div>
+{% endblock %}
+
+
+{% block scripts %}
+<script>
+    function toggleSelection(cell, gameId, selectionType, couponId) {
+        cell.classList.toggle('selected');
+        const isSelected = cell.classList.contains('selected');
+        // Send POST request to Flask to update Firebase
+        fetch(`/update-selection/${couponId}/${gameId}/${selectionType}/${isSelected}`, {
+            method: 'POST'
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log('Firebase Update Response:', data);
+        })
+        .catch((error) => {
+            console.error('Error updating Firebase:', error);
+        });
+        calculateTotal();
+    }
+
+    function calculateTotal() {
+        let total = 1;
+        let anyRowChecked = false;
+        const rows = document.querySelectorAll('#gamesTable tr');
+        
+        rows.forEach((row, index) => {
+            if (index > 0 && index < rows.length - 1) {  // Ignore header and footer rows
+                const selectedCells = row.querySelectorAll('.selected');
+                if (selectedCells.length > 0) {
+                    total *= selectedCells.length;
+                    anyRowChecked = true;
+                }
+            }
+        });
+
+        // Only set total to 0 if no cells are selected
+        if (!anyRowChecked) {
+            total = 0;
+        }
+
+        document.getElementById('totalValue').innerText = "Rader: " + total;
+    }
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+
+<script>
+    var coupon_id = "{{ coupon_id }}"; 
+</script>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
+    import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-database.js";
+
+    // Firebase configuration
+    const firebaseConfig = JSON.parse('{{ firebase_config|tojson|safe }}');
+
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+    const database = getDatabase(app);
+    const dbRef = ref(database, '/coupons/' + coupon_id + '/games');
+
+    onValue(dbRef, (snapshot) => {
+        const data = snapshot.val();
+        console.log("Firebase data:", data);
+        if (data) {
+            document.getElementById('no-games').style.display = 'none';
+            document.getElementById('gamesTable').style.display = 'table';
+            updateTable(data);
+        } else {
+            document.getElementById('no-games').innerHTML = 'No games found.';
+        }
+    }, {
+        onlyOnce: false
+    });
+
+    function updateTable(games) {
+        document.querySelectorAll('td[data-game-id][data-selection]').forEach(cell => {
+            const gameId = cell.getAttribute('data-game-id');
+            
+            const selectionType = cell.getAttribute('data-selection');
+            
+            const isSelected = games && games[gameId] && games[gameId][selectionType];
+            
+
+            if (isSelected) {
+                cell.classList.add('selected');
+            } else {
+                cell.classList.remove('selected');
+            }
+
+            calculateTotal()
+        });
+    }
+</script>
+{% endblock %}
+

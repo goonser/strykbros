@@ -1,0 +1,27 @@
+body {
+    background-color: #99c3f3;
+}
+
+#gamesTable td.selected {
+    background-color: #214784; /* Light grey */
+    color: #f0f0f0; /* Dark text color */
+}
+
+.correct-outcome {
+    border: 6px solid rgb(0, 216, 0);  /* Green border for correct answers */
+    border-bottom: 6px solid rgb(0, 216, 0) !important; /* Ensures this rule takes precedence */
+}
+
+#gamesTable {
+    border-collapse: separate; /* This is necessary for border-spacing to work */
+    border-spacing: 10px 10px;    /* Horizontal spacing 10px, vertical spacing 0 */
+}
+
+#gamesTableBody {
+    font-size: min(3vw, 14px);
+}
+
+.content {
+    max-width: 600px;
+    margin: 0 auto;
+}
